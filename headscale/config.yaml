@@ -5,8 +5,10 @@
 # preauth keys, not interactive login).
 
 # Where the control plane says it lives.
-# Sidecars reach it at host.docker.internal:8080 during initial registration.
-server_url: http://host.docker.internal:8080
+# Sidecars reach it at host.docker.internal:18080 during initial registration.
+# (Port 8080 was already allocated by geodesic-traefik on the host, so the
+# compose file publishes 18080 on the host -> 8080 in the container.)
+server_url: http://host.docker.internal:18080
 listen_addr: 0.0.0.0:8080
 metrics_listen_addr: 0.0.0.0:9090
 
@@ -31,18 +33,28 @@ derp:
   auto_update_enabled: true
 
 # SQLite is enough for a POC. In production use Postgres.
-dbtype: sqlite
-sqlite:
-  path: /var/lib/headscale/db.sqlite
+database:
+  type: sqlite
+  sqlite:
+    path: /var/lib/headscale/db.sqlite
 
 private_key_path: /var/lib/headscale/private.key
 noise:
   private_key_path: /var/lib/headscale/noise_private.key
 
+# Policy is stored in the database so we can update it with `headscale policy set`.
+# The alternative (`mode: file`) reads from `policy.path` on every node-list request
+# and is meant for policy-as-code workflows.
+policy:
+  mode: database
+  path: ""
+
 unix_socket: /var/run/headscale/headscale.sock
 unix_socket_permission: "0770"
 
-ephemeral_node_inactivity_timeout: 30m
+node:
+  ephemeral:
+    inactivity_timeout: 30m
 
 log:
   level: info

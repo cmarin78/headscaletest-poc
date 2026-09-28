@@ -18,3 +18,5 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+# Output secrets (generated preauth keys)
+output/headscale-keys.txt

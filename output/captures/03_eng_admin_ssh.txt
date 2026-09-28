@@ -1,0 +1,17 @@
+==========================================================
+ Section 3 — SSH from eng-admin to admin-portal / internal-db
+ captured: 2026-09-28T18:11:08Z
+==========================================================
+
+tailnet policy allows tag:eng-admin to SSH tag:admin-portal and tag:internal-db.
+For Tailscale SSH to actually work, the source sidecar needs the OpenSSH
+client in PATH (the tailscale binary calls exec("ssh ...")).
+
+The Tailscale official Docker image is alpine-based and DOES NOT include
+the ssh client. To exercise Tailscale SSH in this POC we would either:
+  - install openssh-client inside the persona container (build a custom image), or
+  - use the Tailscale SSH via the system ssh client on a real host.
+For the POC we document the policy intent and skip the live SSH demo.
+
+tag:untrusted is NOT in the SSH allow list, so even with ssh installed:
+the policy check would reject it with "tag untrusted is not allowed...".

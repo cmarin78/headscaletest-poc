@@ -1,0 +1,65 @@
+==========================================================
+ Section 0 — Confirm nodes registered with the right tag
+ captured: 2026-09-28T18:10:44Z
+==========================================================
+
+$ docker exec headscaletest-poc-headscale-1 headscale nodes list
+[96m[96mID[90m[90m | [0m[96m[0m[96mHostname    [90m[90m | [0m[96m[0m[96mName        [90m[90m | [0m[96m[0m[96mMachineKey[90m[90m | [0m[96m[0m[96mNodeKey[90m[90m | [0m[96m[0m[96mUser          [90m[90m | [0m[96m[0m[96mTags            [90m[90m | [0m[96m[0m[96mIP addresses     [90m[90m | [0m[96m[0m[96mEphemeral[90m[90m | [0m[96m[0m[96mLast seen          [90m[90m | [0m[96m[0m[96mExpiration[90m[90m | [0m[96m[0m[96mConnected[90m[90m | [0m[96m[0m[96mExpired[0m
+[96m[0m[0m1 [90m[90m | [0m[0minternal-db [90m[90m | [0m[0minternal-db [90m[90m | [0m[0m[3K4uj]   [90m[90m | [0m[0m[+gavV][90m[90m | [0m[0mtagged-devices[90m[90m | [0m[0mtag:internal-db [90m[90m | [0m[0m100.64.0.1       [90m[90m | [0m[0mfalse    [90m[90m | [0m[0m2026-09-28 18:09:43[90m[90m | [0m[0mN/A       [90m[90m | [0m[0m[92monline[0m   [90m[90m | [0m[0m[92mno[0m     
+  [90m[90m | [0m[0m            [90m[90m | [0m[0m            [90m[90m | [0m[0m          [90m[90m | [0m[0m       [90m[90m | [0m[0m              [90m[90m | [0m[0m                [90m[90m | [0m[0mfd7a:115c:a1e0::1[90m[90m | [0m[0m         [90m[90m | [0m[0m                   [90m[90m | [0m[0m          [90m[90m | [0m[0m         [90m[90m | [0m[0m       
+2 [90m[90m | [0m[0madmin-portal[90m[90m | [0m[0madmin-portal[90m[90m | [0m[0m[s9Exa]   [90m[90m | [0m[0m[+8UVO][90m[90m | [0m[0mtagged-devices[90m[90m | [0m[0mtag:admin-portal[90m[90m | [0m[0m100.64.0.2       [90m[90m | [0m[0mfalse    [90m[90m | [0m[0m2026-09-28 18:10:17[90m[90m | [0m[0mN/A       [90m[90m | [0m[0m[92monline[0m   [90m[90m | [0m[0m[92mno[0m     
+  [90m[90m | [0m[0m            [90m[90m | [0m[0m            [90m[90m | [0m[0m          [90m[90m | [0m[0m       [90m[90m | [0m[0m              [90m[90m | [0m[0m                [90m[90m | [0m[0mfd7a:115c:a1e0::2[90m[90m | [0m[0m         [90m[90m | [0m[0m                   [90m[90m | [0m[0m          [90m[90m | [0m[0m         [90m[90m | [0m[0m       
+3 [90m[90m | [0m[0muntrusted   [90m[90m | [0m[0muntrusted   [90m[90m | [0m[0m[cJ07k]   [90m[90m | [0m[0m[5nXso][90m[90m | [0m[0mtagged-devices[90m[90m | [0m[0mtag:untrusted   [90m[90m | [0m[0m100.64.0.3       [90m[90m | [0m[0mfalse    [90m[90m | [0m[0m2026-09-28 18:09:42[90m[90m | [0m[0mN/A       [90m[90m | [0m[0m[92monline[0m   [90m[90m | [0m[0m[92mno[0m     
+  [90m[90m | [0m[0m            [90m[90m | [0m[0m            [90m[90m | [0m[0m          [90m[90m | [0m[0m       [90m[90m | [0m[0m              [90m[90m | [0m[0m                [90m[90m | [0m[0mfd7a:115c:a1e0::3[90m[90m | [0m[0m         [90m[90m | [0m[0m                   [90m[90m | [0m[0m          [90m[90m | [0m[0m         [90m[90m | [0m[0m       
+4 [90m[90m | [0m[0meng-admin   [90m[90m | [0m[0meng-admin   [90m[90m | [0m[0m[Ym8vV]   [90m[90m | [0m[0m[MonUg][90m[90m | [0m[0mtagged-devices[90m[90m | [0m[0mtag:eng-admin   [90m[90m | [0m[0m100.64.0.4       [90m[90m | [0m[0mfalse    [90m[90m | [0m[0m2026-09-28 18:09:39[90m[90m | [0m[0mN/A       [90m[90m | [0m[0m[92monline[0m   [90m[90m | [0m[0m[92mno[0m     
+  [90m[90m | [0m[0m            [90m[90m | [0m[0m            [90m[90m | [0m[0m          [90m[90m | [0m[0m       [90m[90m | [0m[0m              [90m[90m | [0m[0m                [90m[90m | [0m[0mfd7a:115c:a1e0::4[90m[90m | [0m[0m         [90m[90m | [0m[0m                   [90m[90m | [0m[0m          [90m[90m | [0m[0m         [90m[90m | [0m[0m       
+
+
+$ docker exec headscaletest-poc-headscale-1 headscale users list
+[96m[96mID[90m[90m | [0m[96m[0m[96mName[90m[90m | [0m[96m[0m[96mUsername     [90m[90m | [0m[96m[0m[96mEmail[90m[90m | [0m[96m[0m[96mCreated            [0m
+[96m[0m[0m1 [90m[90m | [0m[0m    [90m[90m | [0m[0mheadscaletest[90m[90m | [0m[0m     [90m[90m | [0m[0m2026-09-28 17:58:43
+
+
+$ docker exec headscaletest-poc-headscale-1 headscale preauthkeys list
+[96m[96mID[90m[90m | [0m[96m[0m[96mKey/Prefix                 [90m[90m | [0m[96m[0m[96mReusable[90m[90m | [0m[96m[0m[96mEphemeral[90m[90m | [0m[96m[0m[96mUsed [90m[90m | [0m[96m[0m[96mExpiration         [90m[90m | [0m[96m[0m[96mCreated            [90m[90m | [0m[96m[0m[96mOwner           [0m
+[96m[0m[0m1 [90m[90m | [0m[0mhskey-auth-HPKjz1ik7a0N-***[90m[90m | [0m[0mtrue    [90m[90m | [0m[0mfalse    [90m[90m | [0m[0mfalse[90m[90m | [0m[0m[92m2026-10-28 17:59:03[0m[90m[90m | [0m[0m2026-09-28 17:59:03[90m[90m | [0m[0mtag:admin-portal
+2 [90m[90m | [0m[0mhskey-auth-GlDlF8QTF04h-***[90m[90m | [0m[0mtrue    [90m[90m | [0m[0mfalse    [90m[90m | [0m[0mfalse[90m[90m | [0m[0m[92m2026-10-28 17:59:03[0m[90m[90m | [0m[0m2026-09-28 17:59:03[90m[90m | [0m[0mtag:internal-db 
+3 [90m[90m | [0m[0mhskey-auth-HNZZWborOu69-***[90m[90m | [0m[0mtrue    [90m[90m | [0m[0mfalse    [90m[90m | [0m[0mfalse[90m[90m | [0m[0m[92m2026-10-28 17:59:04[0m[90m[90m | [0m[0m2026-09-28 17:59:04[90m[90m | [0m[0mtag:eng-admin   
+4 [90m[90m | [0m[0mhskey-auth-9tipJj2nSgcg-***[90m[90m | [0m[0mtrue    [90m[90m | [0m[0mfalse    [90m[90m | [0m[0mfalse[90m[90m | [0m[0m[92m2026-10-28 17:59:04[0m[90m[90m | [0m[0m2026-09-28 17:59:04[90m[90m | [0m[0mtag:untrusted   
+
+
+$ docker exec headscaletest-poc-headscale-1 headscale policy get
+// ACL policy for the headscaletest POC.
+// Same matrix as tailscaletest-poc; lives in this repo so the user can apply it
+// with `headscale policy set --file acl/policy.hujson` from inside the
+// headscale container.
+//
+// Differences vs. the Tailscale version:
+// - `autogroup:admin` does NOT exist in headscale -> use `user:<name>@`
+// - `autogroup:nonroot` is not supported in headscale (would error) -> use literal "root"
+// - Headscale requires the trailing `@` on usernames (Username.Validate uses isUser())
+
+{
+  "tagOwners": {
+    "tag:admin-portal": ["user:headscaletest@"],
+    "tag:internal-db":  ["user:headscaletest@"],
+    "tag:eng-admin":    ["user:headscaletest@"],
+    "tag:untrusted":    ["user:headscaletest@"]
+  },
+  "acls": [
+    {
+      "action": "accept",
+      "src":    ["tag:eng-admin"],
+      "dst":    ["tag:admin-portal:8080"]
+    }
+  ],
+  "ssh": [
+    {
+      "action": "accept",
+      "src":    ["tag:eng-admin"],
+      "dst":    ["tag:admin-portal", "tag:internal-db"],
+      "users":  ["root"]
+    }
+  ]
+}
+

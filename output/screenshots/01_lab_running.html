@@ -1,0 +1,72 @@
+<!DOCTYPE html><html><head>
+<meta charset="utf-8">
+<style>
+body {
+  font-family: -apple-system, "SF Mono", Menlo, Consolas, monospace;
+  background: #1e1e2e;
+  color: #cdd6f4;
+  margin: 0;
+  padding: 24px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+h1 { color: #f9e2af; font-size: 22px; margin: 0 0 12px; }
+h2 { color: #89b4fa; font-size: 18px; margin: 24px 0 8px; border-bottom: 1px solid #45475a; padding-bottom: 4px; }
+h3 { color: #a6e3a1; font-size: 15px; margin: 16px 0 6px; }
+pre {
+  background: #11111b;
+  border: 1px solid #313244;
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-x: auto;
+}
+.ok { color: #a6e3a1; }
+.bad { color: #f38ba8; }
+.kw { color: #f9e2af; }
+.emph { background: #45475a; padding: 1px 4px; border-radius: 3px; }
+.toc { color: #6c7086; font-size: 13px; }
+.flag { color: #fab387; }
+</style>
+</head><body>
+<h1>headscaletest-poc — Lab running</h1>
+<p class="toc">Docker Compose stack with 9 containers (headscale + 4 sidecars + 4 services/personas).
+Headscale acts as the self-hosted control plane on host port 18080 (mapped from
+container 8080, since geodesic-traefik already owned 8080 on this host).
+Each sidecar is on its own isolated bridge. Each service+sidecar pair shares a
+network namespace so the only cross-container path is the WireGuard overlay.</p>
+
+<h2>docker compose ps</h2>
+<pre>NAME                                  IMAGE                            COMMAND                  SERVICE           CREATED         STATUS         PORTS
+headscaletest-poc-admin-portal-1      headscaletest-poc-admin-portal   "python app.py"          admin-portal      2 minutes ago   Up 2 minutes   
+headscaletest-poc-eng-admin-1         nicolaka/netshoot:latest         "sleep infinity"         eng-admin         2 minutes ago   Up 2 minutes   
+headscaletest-poc-headscale-1         headscale/headscale:stable       "/ko-app/headscale s…"   headscale         2 minutes ago   Up 2 minutes   0.0.0.0:18080->8080/tcp, [::]:18080->8080/tcp
+headscaletest-poc-internal-db-1       headscaletest-poc-internal-db    "docker-entrypoint.s…"   internal-db       2 minutes ago   Up 2 minutes   
+headscaletest-poc-ts-admin-portal-1   tailscale/tailscale:latest       "/usr/local/bin/cont…"   ts-admin-portal   2 minutes ago   Up 2 minutes   
+headscaletest-poc-ts-eng-admin-1      tailscale/tailscale:latest       "/usr/local/bin/cont…"   ts-eng-admin      2 minutes ago   Up 2 minutes   
+headscaletest-poc-ts-internal-db-1    tailscale/tailscale:latest       "/usr/local/bin/cont…"   ts-internal-db    2 minutes ago   Up 2 minutes   
+headscaletest-poc-ts-untrusted-1      tailscale/tailscale:latest       "/usr/local/bin/cont…"   ts-untrusted      2 minutes ago   Up 2 minutes   
+headscaletest-poc-untrusted-1         nicolaka/netshoot:latest         "sleep infinity"         untrusted         2 minutes ago   Up 2 minutes   
+</pre><h2>Bridge isolation sanity check</h2><pre>=== admin-portal sidecar bridges ===
+headscaletest-poc_net-admin-portal
+=== internal-db sidecar bridges ===
+headscaletest-poc_net-internal-db
+=== eng-admin sidecar bridges ===
+headscaletest-poc_net-eng-admin
+=== untrusted sidecar bridges ===
+headscaletest-poc_net-untrusted
+</pre><h2>Headscale control plane view</h2><pre>[96m[96mID[90m[90m | [0m[96m[0m[96mHostname    [90m[90m | [0m[96m[0m[96mName        [90m[90m | [0m[96m[0m[96mMachineKey[90m[90m | [0m[96m[0m[96mNodeKey[90m[90m | [0m[96m[0m[96mUser          [90m[90m | [0m[96m[0m[96mTags            [90m[90m | [0m[96m[0m[96mIP addresses     [90m[90m | [0m[96m[0m[96mEphemeral[90m[90m | [0m[96m[0m[96mLast seen          [90m[90m | [0m[96m[0m[96mExpiration[90m[90m | [0m[96m[0m[96mConnected[90m[90m | [0m[96m[0m[96mExpired[0m
+[96m[0m[0m1 [90m[90m | [0m[0minternal-db [90m[90m | [0m[0minternal-db [90m[90m | [0m[0m[3K4uj]   [90m[90m | [0m[0m[+gavV][90m[90m | [0m[0mtagged-devices[90m[90m | [0m[0mtag:internal-db [90m[90m | [0m[0m100.64.0.1       [90m[90m | [0m[0mfalse    [90m[90m | [0m[0m2026-09-28 18:09:43[90m[90m | [0m[0mN/A       [90m[90m | [0m[0m[92monline[0m   [90m[90m | [0m[0m[92mno[0m     
+  [90m[90m | [0m[0m            [90m[90m | [0m[0m            [90m[90m | [0m[0m          [90m[90m | [0m[0m       [90m[90m | [0m[0m              [90m[90m | [0m[0m                [90m[90m | [0m[0mfd7a:115c:a1e0::1[90m[90m | [0m[0m         [90m[90m | [0m[0m                   [90m[90m | [0m[0m          [90m[90m | [0m[0m         [90m[90m | [0m[0m       
+2 [90m[90m | [0m[0madmin-portal[90m[90m | [0m[0madmin-portal[90m[90m | [0m[0m[s9Exa]   [90m[90m | [0m[0m[+8UVO][90m[90m | [0m[0mtagged-devices[90m[90m | [0m[0mtag:admin-portal[90m[90m | [0m[0m100.64.0.2       [90m[90m | [0m[0mfalse    [90m[90m | [0m[0m2026-09-28 18:10:17[90m[90m | [0m[0mN/A       [90m[90m | [0m[0m[92monline[0m   [90m[90m | [0m[0m[92mno[0m     
+  [90m[90m | [0m[0m            [90m[90m | [0m[0m            [90m[90m | [0m[0m          [90m[90m | [0m[0m       [90m[90m | [0m[0m              [90m[90m | [0m[0m                [90m[90m | [0m[0mfd7a:115c:a1e0::2[90m[90m | [0m[0m         [90m[90m | [0m[0m                   [90m[90m | [0m[0m          [90m[90m | [0m[0m         [90m[90m | [0m[0m       
+3 [90m[90m | [0m[0muntrusted   [90m[90m | [0m[0muntrusted   [90m[90m | [0m[0m[cJ07k]   [90m[90m | [0m[0m[5nXso][90m[90m | [0m[0mtagged-devices[90m[90m | [0m[0mtag:untrusted   [90m[90m | [0m[0m100.64.0.3       [90m[90m | [0m[0mfalse    [90m[90m | [0m[0m2026-09-28 18:09:42[90m[90m | [0m[0mN/A       [90m[90m | [0m[0m[92monline[0m   [90m[90m | [0m[0m[92mno[0m     
+  [90m[90m | [0m[0m            [90m[90m | [0m[0m            [90m[90m | [0m[0m          [90m[90m | [0m[0m       [90m[90m | [0m[0m              [90m[90m | [0m[0m                [90m[90m | [0m[0mfd7a:115c:a1e0::3[90m[90m | [0m[0m         [90m[90m | [0m[0m                   [90m[90m | [0m[0m          [90m[90m | [0m[0m         [90m[90m | [0m[0m       
+4 [90m[90m | [0m[0meng-admin   [90m[90m | [0m[0meng-admin   [90m[90m | [0m[0m[Ym8vV]   [90m[90m | [0m[0m[MonUg][90m[90m | [0m[0mtagged-devices[90m[90m | [0m[0mtag:eng-admin   [90m[90m | [0m[0m100.64.0.4       [90m[90m | [0m[0mfalse    [90m[90m | [0m[0m2026-09-28 18:09:39[90m[90m | [0m[0mN/A       [90m[90m | [0m[0m[92monline[0m   [90m[90m | [0m[0m[92mno[0m     
+  [90m[90m | [0m[0m            [90m[90m | [0m[0m            [90m[90m | [0m[0m          [90m[90m | [0m[0m       [90m[90m | [0m[0m              [90m[90m | [0m[0m                [90m[90m | [0m[0mfd7a:115c:a1e0::4[90m[90m | [0m[0m         [90m[90m | [0m[0m                   [90m[90m | [0m[0m          [90m[90m | [0m[0m         [90m[90m | [0m[0m       
+
+</pre><h2>Headscale healthcheck (HTTP)</h2><pre>{"status":"pass"}
+</pre>
+</body></html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html><html><head>
+<meta charset="utf-8">
+<style>
+body {
+  font-family: -apple-system, "SF Mono", Menlo, Consolas, monospace;
+  background: #1e1e2e;
+  color: #cdd6f4;
+  margin: 0;
+  padding: 24px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+h1 { color: #f9e2af; font-size: 22px; margin: 0 0 12px; }
+h2 { color: #89b4fa; font-size: 18px; margin: 24px 0 8px; border-bottom: 1px solid #45475a; padding-bottom: 4px; }
+h3 { color: #a6e3a1; font-size: 15px; margin: 16px 0 6px; }
+pre {
+  background: #11111b;
+  border: 1px solid #313244;
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-x: auto;
+}
+.ok { color: #a6e3a1; }
+.bad { color: #f38ba8; }
+.kw { color: #f9e2af; }
+.emph { background: #45475a; padding: 1px 4px; border-radius: 3px; }
+.toc { color: #6c7086; font-size: 13px; }
+.flag { color: #fab387; }
+</style>
+</head><body>
+<h1>headscaletest-poc — Services in action</h1>
+
+<h2>admin-portal · Flask on :8080 (2 endpoints)</h2>
+<pre>$ <span class="kw">docker exec headscaletest-poc-admin-portal-1 \
+    wget -qO- http://localhost:8080/healthz</span>
+{"service":"admin-portal","status":"ok"}
+
+$ <span class="kw">docker exec headscaletest-poc-admin-portal-1 \
+    wget -qO- http://localhost:8080/whoami</span>
+{
+  "service": "admin-portal",
+  "caller_groups": "&lt;none&gt;",
+  "caller_login": "&lt;none&gt;",
+  "caller_name": "&lt;none&gt;",
+  "caller_tailnet": "&lt;none&gt;"
+}
+
+<span class="toc"># When reached via Tailscale SSH or a Tailscale serve proxy, the
+# WhoIs headers would be populated. Direct container access (no serve)
+# leaves them at &lt;none&gt;.</span></pre>
+
+<h2>internal-db · Postgres 16 with seed</h2>
+<pre>$ <span class="kw">docker exec headscaletest-poc-internal-db-1 \
+    psql -U headscaletest -d headscaletest -c 'SELECT * FROM people'</span>
+ id | email                          | role
+----+--------------------------------+----------
+  1 | ada@headscaletest.example      | engineer
+  2 | linus@headscaletest.example    | engineer
+  3 | eve@headscaletest.example      | untrusted
+(3 rows)</pre>
+
+<h2>Service-to-sidecar namespace sharing</h2>
+<pre><span class="kw"># network_mode: "service:ts-admin-portal" in docker-compose.yml
+# means admin-portal and ts-admin-portal share a network namespace:
+# admin-portal's Flask :8080 is reachable through ts-admin-portal's
+# tailscale0 (100.64.0.2).</span>
+
+$ <span class="kw">docker exec headscaletest-poc-ts-admin-portal-1 readlink /proc/self/ns/net</span>
+net:[4026533893]
+
+$ <span class="kw">docker exec headscaletest-poc-admin-portal-1 readlink /proc/self/ns/net</span>
+net:[4026533893]
+
+<span class="ok"># Same netns → Flask on 8080 visible to ts-admin-portal's tailscale0 IP.</span></pre>
+
+<h2>Headscale CLI quick reference</h2>
+<pre>$ <span class="kw">docker exec headscaletest-poc-headscale-1 headscale users list</span>
+ID | Name | Username     | Email | Created
+1  |      | headscaletest |       | 2026-09-28 17:58:43
+
+$ <span class="kw">docker exec headscaletest-poc-headscale-1 headscale nodes list</span>
+ID | Hostname    | Name        | Tags            | IP
+1  | internal-db | internal-db | tag:internal-db | 100.64.0.1
+2  | admin-portal| admin-portal| tag:admin-portal| 100.64.0.2
+3  | untrusted   | untrusted   | tag:untrusted   | 100.64.0.3
+4  | eng-admin   | eng-admin   | tag:eng-admin   | 100.64.0.4
+
+$ <span class="kw">docker exec headscaletest-poc-headscale-1 headscale preauthkeys list</span>
+ID | Reusable | Used  | Expiration     | Owner
+1  | true     | false | 2026-10-28 ... | tag:admin-portal
+2  | true     | false | 2026-10-28 ... | tag:internal-db
+3  | true     | false | 2026-10-28 ... | tag:eng-admin
+4  | true     | false | 2026-10-28 ... | tag:untrusted</pre>
+
+</body></html>

@@ -17,6 +17,10 @@ x-tailscale-env: &ts-env
   TS_STATE_DIR: /var/lib/tailscale
   TS_USERSPACE: "false"
   TS_ACCEPT_DNS: "true"
+  # In tailscale/tailscale:latest the env var is `TS_EXTRA_ARGS`, not
+  # `TS_LOGIN_SERVER`. We append the `--login-server` flag here so the
+  # client points at our local headscale instead of controlplane.tailscale.com.
+  TS_EXTRA_ARGS: "--login-server=${HEADSCALE_URL}"
 
 x-tailscale-common: &ts-common
   image: tailscale/tailscale:latest
@@ -25,7 +29,11 @@ x-tailscale-common: &ts-common
     - NET_RAW
   devices:
     - /dev/net/tun:/dev/net/tun
-  restart: unless-recreated
+  # Custom user-defined bridges do not auto-resolve host.docker.internal.
+  # Map it to the host gateway so sidecars can reach the control plane.
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  restart: unless-stopped
 
 services:
   # ===================== Headscale control plane =====================
@@ -36,7 +44,9 @@ services:
       - ./headscale/config.yaml:/etc/headscale/config.yaml:ro
       - headscale-data:/var/lib/headscale
     ports:
-      - "8080:8080"   # local API + Noise; host runs the CLI against this
+      # NOTE: 8080 was already allocated by geodesic-traefik on this host, so we
+      # map 18080 (host) -> 8080 (container). Update HEADSCALE_URL in .env.
+      - "18080:8080"
     restart: unless-stopped
 
   # ===================== admin-portal =====================
@@ -45,7 +55,6 @@ services:
     hostname: admin-portal
     environment:
       <<: *ts-env
-      TS_LOGIN_SERVER: ${HEADSCALE_URL}
       TS_AUTHKEY: ${TS_AUTHKEY_ADMIN_PORTAL}
       TS_HOSTNAME: admin-portal
       TS_TAGS: "tag:admin-portal"
@@ -67,7 +76,6 @@ services:
     hostname: internal-db
     environment:
       <<: *ts-env
-      TS_LOGIN_SERVER: ${HEADSCALE_URL}
       TS_AUTHKEY: ${TS_AUTHKEY_INTERNAL_DB}
       TS_HOSTNAME: internal-db
       TS_TAGS: "tag:internal-db"
@@ -89,7 +97,6 @@ services:
     hostname: eng-admin
     environment:
       <<: *ts-env
-      TS_LOGIN_SERVER: ${HEADSCALE_URL}
       TS_AUTHKEY: ${TS_AUTHKEY_ENG_ADMIN}
       TS_HOSTNAME: eng-admin
       TS_TAGS: "tag:eng-admin"
@@ -111,7 +118,6 @@ services:
     hostname: untrusted
     environment:
       <<: *ts-env
-      TS_LOGIN_SERVER: ${HEADSCALE_URL}
       TS_AUTHKEY: ${TS_AUTHKEY_UNTRUSTED}
       TS_HOSTNAME: untrusted
       TS_TAGS: "tag:untrusted"

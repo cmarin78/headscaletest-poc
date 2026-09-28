@@ -1,3 +1,9 @@
+==========================================================
+ Section 6 — live policy
+ captured: 2026-09-28T18:11:17Z
+==========================================================
+
+$ docker exec headscaletest-poc-headscale-1 headscale policy get
 // ACL policy for the headscaletest POC.
 // Same matrix as tailscaletest-poc; lives in this repo so the user can apply it
 // with `headscale policy set --file acl/policy.hujson` from inside the
@@ -31,3 +37,32 @@
     }
   ]
 }
+
+
+$ docker exec headscaletest-poc-headscale-1 headscale nodes list -o json | python3 -c "import json,sys;d=json.load(sys.stdin);print(json.dumps([{\"id\":n[\"id\"],\"name\":n[\"name\"],\"ip\":n[\"ip_addresses\"][0],\"tags\":n[\"forced_tags\"]} for n in d],indent=2))"
+[
+  {
+    "id": 1,
+    "name": "internal-db",
+    "ip": "100.64.0.1",
+    "tags": null
+  },
+  {
+    "id": 2,
+    "name": "admin-portal",
+    "ip": "100.64.0.2",
+    "tags": null
+  },
+  {
+    "id": 3,
+    "name": "untrusted",
+    "ip": "100.64.0.3",
+    "tags": null
+  },
+  {
+    "id": 4,
+    "name": "eng-admin",
+    "ip": "100.64.0.4",
+    "tags": null
+  }
+]

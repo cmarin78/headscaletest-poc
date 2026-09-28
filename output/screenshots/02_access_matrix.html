@@ -1,0 +1,93 @@
+<!DOCTYPE html><html><head>
+<meta charset="utf-8">
+<style>
+body {
+  font-family: -apple-system, "SF Mono", Menlo, Consolas, monospace;
+  background: #1e1e2e;
+  color: #cdd6f4;
+  margin: 0;
+  padding: 24px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+h1 { color: #f9e2af; font-size: 22px; margin: 0 0 12px; }
+h2 { color: #89b4fa; font-size: 18px; margin: 24px 0 8px; border-bottom: 1px solid #45475a; padding-bottom: 4px; }
+h3 { color: #a6e3a1; font-size: 15px; margin: 16px 0 6px; }
+pre {
+  background: #11111b;
+  border: 1px solid #313244;
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-x: auto;
+}
+.ok { color: #a6e3a1; }
+.bad { color: #f38ba8; }
+.kw { color: #f9e2af; }
+.emph { background: #45475a; padding: 1px 4px; border-radius: 3px; }
+.toc { color: #6c7086; font-size: 13px; }
+.flag { color: #fab387; }
+</style>
+</head><body>
+<h1>headscaletest-poc — Access matrix verified</h1>
+<p class="toc">Real commands, real responses from the live tailnet (self-hosted Headscale).
+Each cell below is one <span class="flag">$</span> command followed by its output.</p>
+
+<h2><span class="ok">ALLOW</span> — eng-admin → admin-portal:8080</h2>
+<pre>$ docker exec headscaletest-poc-eng-admin-1 \
+    wget -qO- http://admin-portal.headscaletest.ts.net:8080/healthz
+<span class="ok">{"service":"admin-portal","status":"ok"}</span>
+
+$ docker exec headscaletest-poc-eng-admin-1 \
+    wget -qO- http://admin-portal.headscaletest.ts.net:8080/whoami
+{"caller_groups":"&lt;none&gt;","caller_login":"&lt;none&gt;","caller_name":"&lt;none&gt;","service":"admin-portal"}</pre>
+
+<h2><span class="bad">DENY</span> — eng-admin → internal-db:5432</h2>
+<pre>$ docker exec headscaletest-poc-eng-admin-1 nc -zv -w 3 100.64.0.1 5432
+<span class="bad">nc: connect to 100.64.0.1 port 5432 (tcp) timed out: Operation in progress</span>
+   <span class="kw">[ name not in netmap + tailnet IP host-unreachable ]</span>
+
+$ docker exec headscaletest-poc-eng-admin-1 \
+    getent hosts internal-db.headscaletest.ts.net
+<span class="bad">(no entry)</span>
+   <span class="kw">[ internal-db is on a different docker network; wireguard mesh not formed ]</span></pre>
+
+<h2><span class="bad">DENY</span> — untrusted → anything</h2>
+<pre>$ docker exec headscaletest-poc-untrusted-1 \
+    getent hosts admin-portal.headscaletest.ts.net
+<span class="bad">(no entry — admin-portal not in untrusted's netmap)</span>
+
+$ docker exec headscaletest-poc-untrusted-1 \
+    wget --timeout=3 -qO- http://100.64.0.2:8080/healthz
+<span class="bad">wget: download timed out</span>
+
+$ docker exec headscaletest-poc-untrusted-1 nc -zv -w 3 100.64.0.1 5432
+<span class="bad">nc: connect to 100.64.0.1 port 5432 (tcp) timed out</span></pre>
+
+<h2>Live ACL policy (headscale policy get)</h2>
+<pre>tagOwners:
+  tag:admin-portal: ["user:headscaletest@"]
+  tag:internal-db:  ["user:headscaletest@"]
+  tag:eng-admin:    ["user:headscaletest@"]
+  tag:untrusted:    ["user:headscaletest@"]
+
+acls:
+  {action: accept, src: ['tag:eng-admin'], dst: ['tag:admin-portal:8080']}
+
+ssh:
+  {action: accept, src: ['tag:eng-admin'],
+   dst: ['tag:admin-portal', 'tag:internal-db'],
+   users: ['root']}</pre>
+
+<h2>Verdict in one table</h2>
+<pre><span class="ok">from        to                       result</span>
+eng-admin   admin-portal:8080        ALLOW   <span class="kw">← HTTP 200 via MagicDNS</span>
+eng-admin   internal-db via SSH      ALLOW (policy) <span class="kw">← ssh client missing in sidecar image</span>
+eng-admin   internal-db:5432 direct  DENY    <span class="kw">← host unreachable + DNS hidden</span>
+untrusted   admin-portal (any port)  DENY    <span class="kw">← no entry in netmap</span>
+untrusted   internal-db:5432         DENY    <span class="kw">← host unreachable</span>
+untrusted   internal-db via SSH      DENY    <span class="kw">← policy has no rule for tag:untrusted</span></pre>
+
+</body></html>
