@@ -1,0 +1,146 @@
+# headscaletest-poc — minimal services + sidecars + headscale control plane
+#
+# Topology (5 nodes total):
+#   headscale                    (control plane, port 8080 on host)
+#   ts-admin-portal + admin-portal   (Flask :8080, tag:admin-portal)
+#   ts-internal-db  + internal-db    (Postgres :5432, tag:internal-db)
+#   ts-eng-admin    + eng-admin      (netshoot, tag:eng-admin)
+#   ts-untrusted    + untrusted      (netshoot, tag:untrusted)
+#
+# Each ts-* sidecar lives on its own isolated bridge (net-X). The only way for
+# a sidecar to reach the headscale control plane at startup is through
+# `host.docker.internal:8080` (the host's IP). That connection is one-shot:
+# after initial registration, sidecars never contact it again, and all
+# service-to-service traffic flows over the WireGuard overlay.
+
+x-tailscale-env: &ts-env
+  TS_STATE_DIR: /var/lib/tailscale
+  TS_USERSPACE: "false"
+  TS_ACCEPT_DNS: "true"
+
+x-tailscale-common: &ts-common
+  image: tailscale/tailscale:latest
+  cap_add:
+    - NET_ADMIN
+    - NET_RAW
+  devices:
+    - /dev/net/tun:/dev/net/tun
+  restart: unless-recreated
+
+services:
+  # ===================== Headscale control plane =====================
+  headscale:
+    image: headscale/headscale:stable
+    command: serve
+    volumes:
+      - ./headscale/config.yaml:/etc/headscale/config.yaml:ro
+      - headscale-data:/var/lib/headscale
+    ports:
+      - "8080:8080"   # local API + Noise; host runs the CLI against this
+    restart: unless-stopped
+
+  # ===================== admin-portal =====================
+  ts-admin-portal:
+    <<: *ts-common
+    hostname: admin-portal
+    environment:
+      <<: *ts-env
+      TS_LOGIN_SERVER: ${HEADSCALE_URL}
+      TS_AUTHKEY: ${TS_AUTHKEY_ADMIN_PORTAL}
+      TS_HOSTNAME: admin-portal
+      TS_TAGS: "tag:admin-portal"
+    volumes:
+      - ts-admin-portal-state:/var/lib/tailscale
+    networks:
+      - net-admin-portal
+
+  admin-portal:
+    build: ./apps/admin-portal
+    network_mode: "service:ts-admin-portal"
+    depends_on:
+      - ts-admin-portal
+    restart: unless-stopped
+
+  # ===================== internal-db =====================
+  ts-internal-db:
+    <<: *ts-common
+    hostname: internal-db
+    environment:
+      <<: *ts-env
+      TS_LOGIN_SERVER: ${HEADSCALE_URL}
+      TS_AUTHKEY: ${TS_AUTHKEY_INTERNAL_DB}
+      TS_HOSTNAME: internal-db
+      TS_TAGS: "tag:internal-db"
+    volumes:
+      - ts-internal-db-state:/var/lib/tailscale
+    networks:
+      - net-internal-db
+
+  internal-db:
+    build: ./apps/internal-db
+    network_mode: "service:ts-internal-db"
+    depends_on:
+      - ts-internal-db
+    restart: unless-stopped
+
+  # ===================== personas =====================
+  ts-eng-admin:
+    <<: *ts-common
+    hostname: eng-admin
+    environment:
+      <<: *ts-env
+      TS_LOGIN_SERVER: ${HEADSCALE_URL}
+      TS_AUTHKEY: ${TS_AUTHKEY_ENG_ADMIN}
+      TS_HOSTNAME: eng-admin
+      TS_TAGS: "tag:eng-admin"
+    volumes:
+      - ts-eng-admin-state:/var/lib/tailscale
+    networks:
+      - net-eng-admin
+
+  eng-admin:
+    image: nicolaka/netshoot:latest
+    network_mode: "service:ts-eng-admin"
+    depends_on:
+      - ts-eng-admin
+    command: ["sleep", "infinity"]
+    restart: unless-stopped
+
+  ts-untrusted:
+    <<: *ts-common
+    hostname: untrusted
+    environment:
+      <<: *ts-env
+      TS_LOGIN_SERVER: ${HEADSCALE_URL}
+      TS_AUTHKEY: ${TS_AUTHKEY_UNTRUSTED}
+      TS_HOSTNAME: untrusted
+      TS_TAGS: "tag:untrusted"
+    volumes:
+      - ts-untrusted-state:/var/lib/tailscale
+    networks:
+      - net-untrusted
+
+  untrusted:
+    image: nicolaka/netshoot:latest
+    network_mode: "service:ts-untrusted"
+    depends_on:
+      - ts-untrusted
+    command: ["sleep", "infinity"]
+    restart: unless-stopped
+
+volumes:
+  headscale-data:
+  ts-admin-portal-state:
+  ts-internal-db-state:
+  ts-eng-admin-state:
+  ts-untrusted-state:
+
+networks:
+  net-admin-portal:
+    driver: bridge
+  net-internal-db:
+    driver: bridge
+  net-eng-admin:
+    driver: bridge
+  net-untrusted:
+    driver: bridge

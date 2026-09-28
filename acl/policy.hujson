@@ -1,0 +1,28 @@
+// ACL policy for the headscaletest POC.
+// Same matrix as tailscaletest-poc; lives in this repo so the user can apply it
+// with `headscale policy set --file acl/policy.hujson` from inside the
+// headscale container.
+
+{
+  "tagOwners": {
+    "tag:admin-portal": ["autogroup:admin"],
+    "tag:internal-db":  ["autogroup:admin"],
+    "tag:eng-admin":    ["autogroup:admin"],
+    "tag:untrusted":    ["autogroup:admin"]
+  },
+  "acls": [
+    {
+      "action": "accept",
+      "src":    ["tag:eng-admin"],
+      "dst":    ["tag:admin-portal:8080"]
+    }
+  ],
+  "ssh": [
+    {
+      "action": "accept",
+      "src":    ["tag:eng-admin"],
+      "dst":    ["tag:admin-portal", "tag:internal-db"],
+      "users":  ["autogroup:nonroot", "root"]
+    }
+  ]
+}
